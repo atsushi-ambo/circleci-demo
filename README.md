@@ -178,22 +178,6 @@ circleci-demo/
 └── README.md               # This file
 ```
 
-## Interview Preparation Tips
-
-When discussing this project in your interview, highlight:
-
-1. **CI/CD Understanding**: Explain the build → test → deploy pipeline
-2. **CircleCI Concepts**:
-   - Jobs and workflows
-   - Caching strategies
-   - Workspace persistence
-   - Environment variables
-3. **Best Practices**:
-   - Running tests before deployment
-   - Branch-based deployment strategies
-   - Using artifacts for debugging
-4. **GitHub Integration**: Token authentication and Pages deployment
-
 ## Additional Resources
 
 - [CircleCI Documentation](https://circleci.com/docs/)
