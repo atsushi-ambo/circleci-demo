@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/circleci-demo/static/css/main.681b378c.css",
+    "main.js": "/circleci-demo/static/js/main.12347fa6.js",
+    "index.html": "/circleci-demo/index.html",
+    "main.681b378c.css.map": "/circleci-demo/static/css/main.681b378c.css.map",
+    "main.12347fa6.js.map": "/circleci-demo/static/js/main.12347fa6.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.681b378c.css",
+    "static/js/main.12347fa6.js"
+  ]
+}

@@ -1,0 +1,83 @@
+version: 2.1
+
+jobs:
+  build-and-test:
+    docker:
+      - image: cimg/node:18.0
+    steps:
+      - checkout
+
+      # Restore cached dependencies
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package-lock.json" }}
+            - v1-dependencies-
+
+      # Install dependencies
+      - run:
+          name: Install Dependencies
+          command: npm ci
+
+      # Save dependencies to cache
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package-lock.json" }}
+
+      # Run tests
+      - run:
+          name: Run Tests
+          command: npm test -- --watchAll=false --coverage
+
+      # Build the application
+      - run:
+          name: Build Application
+          command: npm run build
+
+      # Save build artifacts
+      - store_artifacts:
+          path: build
+          destination: build
+
+      # Persist build to workspace for deploy job
+      - persist_to_workspace:
+          root: .
+          paths:
+            - build
+            - package.json
+            - node_modules
+
+  deploy:
+    docker:
+      - image: cimg/node:18.0
+    steps:
+      - checkout
+
+      # Attach workspace from build job
+      - attach_workspace:
+          at: .
+
+      # Configure git for deployment
+      - run:
+          name: Configure Git
+          command: |
+            git config user.email "circleci@circleci.com"
+            git config user.name "CircleCI Bot"
+
+      # Deploy to GitHub Pages
+      - run:
+          name: Deploy to GitHub Pages
+          command: |
+            git remote set-url origin https://${GITHUB_TOKEN}@github.com/atsushi-ambo/circleci-demo.git
+            npm run deploy
+
+workflows:
+  build-test-deploy:
+    jobs:
+      - build-and-test
+      - deploy:
+          requires:
+            - build-and-test
+          filters:
+            branches:
+              only: main
