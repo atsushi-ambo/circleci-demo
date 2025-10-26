@@ -1,190 +1,165 @@
 # CircleCI Demo Application
 
-A simple React application demonstrating CI/CD with CircleCI and GitHub Pages deployment.
+A simple React application demonstrating CI/CD pipeline with CircleCI and automated deployment to GitHub Pages.
 
-## Prerequisites
+**Live Demo:** https://atsushi-ambo.github.io/circleci-demo
 
-- Node.js 18+ installed
-- GitHub account
-- CircleCI account (connected to GitHub)
+## Overview
 
-## Local Setup
+This project demonstrates a complete CI/CD pipeline that automatically:
+1. Runs tests on every commit
+2. Builds the application
+3. Deploys to GitHub Pages (only from main branch)
 
-1. Install dependencies:
+## How CircleCI Works
+
+### Pipeline Flow
+
+```
+Code Push → GitHub → CircleCI Webhook → Pipeline Execution
+                                              ↓
+                                    ┌─────────────────────┐
+                                    │  Job: build-and-test │
+                                    ├─────────────────────┤
+                                    │ 1. Checkout code    │
+                                    │ 2. Restore cache    │
+                                    │ 3. Install deps     │
+                                    │ 4. Run tests ✓      │
+                                    │ 5. Build app        │
+                                    │ 6. Save artifacts   │
+                                    └─────────────────────┘
+                                              ↓
+                                    ┌─────────────────────┐
+                                    │  Job: deploy        │
+                                    ├─────────────────────┤
+                                    │ 1. Get build files  │
+                                    │ 2. Configure git    │
+                                    │ 3. Push to gh-pages │
+                                    └─────────────────────┘
+                                              ↓
+                                      GitHub Pages
+                                      (Live Site)
+```
+
+### Key Concepts
+
+#### Jobs
+- **build-and-test**: Installs dependencies, runs tests, creates production build
+- **deploy**: Publishes build artifacts to GitHub Pages
+
+#### Workflow
+- Jobs run sequentially (deploy waits for build-and-test)
+- Deploy only runs on `main` branch
+- If tests fail, deployment is skipped
+
+#### Optimization Features
+- **Dependency Caching**: Reuses `node_modules` if `package-lock.json` unchanged (speeds up builds)
+- **Workspace Persistence**: Shares `build/` folder between jobs (no need to rebuild)
+- **Conditional Deployment**: Feature branches build and test but don't deploy
+
+## CircleCI Setup
+
+### 1. Create GitHub Personal Access Token
+
+GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)
+- Name: "CircleCI Deploy"
+- Scope: Select `repo`
+- Generate and copy the token
+
+### 2. Connect Repository to CircleCI
+
+1. Go to [CircleCI](https://circleci.com/)
+2. Click **Projects** → Find your repository
+3. Click **Set Up Project**
+4. Select **Use Existing Config** (we have `.circleci/config.yml`)
+5. Click **Start Building**
+
+### 3. Add Environment Variable
+
+In CircleCI project settings:
+- Navigate to **Environment Variables**
+- Add variable:
+  - Name: `GITHUB_TOKEN`
+  - Value: (your GitHub token)
+
+### 4. Configure GitHub Pages
+
+Repository Settings → Pages
+- Source: `gh-pages` branch
+- Save
+
+That's it! Push any change to `main` branch and watch the pipeline run.
+
+## Local Development
+
 ```bash
+# Install dependencies
 npm install
-```
 
-2. Run the application locally:
-```bash
+# Run development server
 npm start
-```
 
-3. Run tests:
-```bash
+# Run tests
 npm test
-```
 
-4. Build for production:
-```bash
+# Build for production
 npm run build
 ```
 
-## CircleCI Setup Instructions
+## Configuration File Explained
 
-### Step 1: Update package.json
+The [.circleci/config.yml](.circleci/config.yml) defines the pipeline:
 
-Update the `homepage` field in [package.json](package.json) with your GitHub username:
+```yaml
+jobs:
+  build-and-test:    # First job
+    - Install dependencies (npm ci)
+    - Run tests
+    - Build application
+    - Save build artifacts
 
-```json
-"homepage": "https://YOUR_GITHUB_USERNAME.github.io/circleci-demo"
+  deploy:            # Second job
+    - Get build artifacts from previous job
+    - Deploy to GitHub Pages
+
+workflows:
+  build-test-deploy:
+    - Run build-and-test
+    - Run deploy (only if tests pass, only on main branch)
 ```
-
-### Step 2: Push to GitHub
-
-```bash
-# If you haven't already initialized git
-git init
-git add .
-git commit -m "Initial commit: Add CircleCI demo app"
-
-# Create a new repository on GitHub (named 'circleci-demo')
-# Then push your code
-git remote add origin https://github.com/YOUR_USERNAME/circleci-demo.git
-git branch -M main
-git push -u origin main
-```
-
-### Step 3: Create GitHub Personal Access Token
-
-1. Go to GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)
-2. Click "Generate new token (classic)"
-3. Give it a name like "CircleCI Deploy"
-4. Select the `repo` scope (full control of private repositories)
-5. Click "Generate token"
-6. **Copy the token** (you won't be able to see it again!)
-
-### Step 4: Set Up Project in CircleCI
-
-1. Go to [CircleCI](https://circleci.com/)
-2. Click "Projects" in the left sidebar
-3. Find your `circleci-demo` repository
-4. Click "Set Up Project"
-5. Select "Use Existing Config" (since we already have `.circleci/config.yml`)
-6. Click "Start Building"
-
-### Step 5: Add Environment Variables in CircleCI
-
-1. In CircleCI, go to your project settings (click the gear icon)
-2. Navigate to "Environment Variables" in the left menu
-3. Click "Add Environment Variable"
-4. Add the following:
-   - **Name**: `GITHUB_TOKEN`
-   - **Value**: (paste the personal access token you created)
-5. Click "Add Environment Variable"
-
-### Step 6: Trigger a Build
-
-Push a change to the main branch, or click "Rerun workflow from start" in CircleCI to trigger a deployment.
-
-```bash
-# Make a small change
-echo "# CircleCI Demo" > test.txt
-git add test.txt
-git commit -m "Test CircleCI deployment"
-git push
-```
-
-### Step 7: Configure GitHub Pages (if needed)
-
-1. Go to your GitHub repository settings
-2. Navigate to "Pages" in the left menu
-3. Under "Source", select the `gh-pages` branch
-4. Click "Save"
-
-Your site will be available at: `https://YOUR_USERNAME.github.io/circleci-demo`
-
-## CircleCI Configuration Overview
-
-The [.circleci/config.yml](.circleci/config.yml) file defines two jobs:
-
-### 1. build-and-test
-- Checks out code
-- Installs dependencies with caching
-- Runs tests
-- Builds the application
-- Saves build artifacts
-- Persists workspace for the deploy job
-
-### 2. deploy
-- Runs only on the main branch
-- Attaches workspace from build job
-- Configures git credentials
-- Deploys to GitHub Pages using the gh-pages package
-
-### Workflow
-The workflow runs both jobs sequentially:
-1. `build-and-test` runs first
-2. `deploy` runs only if build-and-test succeeds and only on the main branch
-
-## Key Features Demonstrated
-
-1. **Dependency Caching**: Speeds up builds by caching node_modules
-2. **Testing**: Runs Jest tests with coverage
-3. **Build Artifacts**: Stores build output for inspection
-4. **Workspace Persistence**: Shares files between jobs
-5. **Conditional Deployment**: Only deploys from the main branch
-6. **GitHub Pages Integration**: Automated deployment to GitHub Pages
-
-## Testing the CI/CD Pipeline
-
-Try these scenarios to test your pipeline:
-
-1. **Successful Build**: Make a small change and push to main
-2. **Failed Tests**: Break a test to see the pipeline fail
-3. **Branch Protection**: Push to a feature branch (won't deploy)
-
-## Troubleshooting
-
-### Build Fails: "npm ci requires a package-lock.json"
-Solution: Run `npm install` locally and commit package-lock.json
-
-### Deploy Fails: Authentication Error
-Solution: Check that GITHUB_TOKEN is set correctly in CircleCI environment variables
-
-### GitHub Pages Not Updating
-Solution: Check repository Settings → Pages → ensure gh-pages branch is selected
-
-### Tests Hanging
-Solution: Ensure tests run with `--watchAll=false` flag
 
 ## Project Structure
 
 ```
-circleci-demo/
-├── .circleci/
-│   └── config.yml          # CircleCI configuration
-├── public/
-│   └── index.html          # HTML template
-├── src/
-│   ├── App.js              # Main React component
-│   ├── App.css             # Component styles
-│   ├── App.test.js         # Component tests
-│   ├── index.js            # React entry point
-│   ├── index.css           # Global styles
-│   └── setupTests.js       # Test configuration
-├── .gitignore              # Git ignore rules
-├── package.json            # Project dependencies and scripts
-└── README.md               # This file
+.circleci/config.yml    # CircleCI pipeline configuration
+src/                    # React application source code
+public/                 # Static assets
+package.json            # Dependencies and scripts
+package-lock.json       # Locked dependency versions (for reproducible builds)
 ```
 
-## Additional Resources
+## Testing the Pipeline
+
+1. **Make a change** to any file
+2. **Commit and push** to main branch
+3. **Watch CircleCI** dashboard for build progress
+4. **Check live site** after successful deployment
+
+## Troubleshooting
+
+**Build fails: "npm ci requires package-lock.json"**
+- Run `npm install` locally and commit the generated `package-lock.json`
+
+**Deploy fails: "Repository not found"**
+- Verify `GITHUB_TOKEN` is set in CircleCI environment variables
+- Check token has `repo` scope
+
+**Tests fail**
+- Run `npm test` locally to debug
+- Fix issues and push again
+
+## Resources
 
 - [CircleCI Documentation](https://circleci.com/docs/)
-- [CircleCI Configuration Reference](https://circleci.com/docs/configuration-reference/)
 - [GitHub Pages Documentation](https://docs.github.com/en/pages)
-- [React Documentation](https://react.dev/)
-
-## License
-
-MIT
+- [This project's live site](https://atsushi-ambo.github.io/circleci-demo)
