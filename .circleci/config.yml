@@ -68,7 +68,7 @@ jobs:
       - run:
           name: Deploy to GitHub Pages
           command: |
-            git remote set-url origin https://${GITHUB_TOKEN}@github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git
+            git remote set-url origin https://${GITHUB_TOKEN}@github.com/atsushi-ambo/circleci-demo.git
             npm run deploy
 
 workflows:
